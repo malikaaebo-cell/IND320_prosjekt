@@ -5,7 +5,9 @@ from modules.data_loader import load_data
 st.title("Plot")
 st.write("Her er et plot med selectbox for kolonnevalg og select_slider for månedsutvalg.")
 
+# Last inn dataene via den delte, cachede funksjonen 
 df = load_data()
+# Velg kun numeriske kolonner, siden disse er de eneste som kan plottes
 numeric_cols = df.select_dtypes(include='number').columns.tolist()
 
 # Dropdown: én kolonne eller alle sammen
@@ -26,6 +28,7 @@ filtered = df[(df['year_month'] >= start) & (df['year_month'] <= slutt)]
 
 fig, ax = plt.subplots(figsize=(10, 5))
 
+# Hvis "Alle kolonner" er valgt: normaliser til 0-1 for å vise dem sammen til tross for ulike skalaer
 if valgt_kolonne == "Alle kolonner":
     normalized = (filtered[numeric_cols] - df[numeric_cols].min()) / (df[numeric_cols].max() - df[numeric_cols].min())
     for col in numeric_cols:
@@ -33,6 +36,7 @@ if valgt_kolonne == "Alle kolonner":
     ax.legend(fontsize='small', loc='upper right')
     ax.set_ylabel("Normalisert verdi")
     ax.set_title("Alle kolonner (normalisert)")
+# Vis kun den valgte kolonnen direkte, uten normalisering (unødvendig med bare én skala)
 else:
     ax.plot(filtered['date'], filtered[valgt_kolonne])
     ax.set_ylabel(valgt_kolonne)
