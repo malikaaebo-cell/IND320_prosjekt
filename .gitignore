@@ -15,3 +15,4 @@ D2Dbook/_build
 
 # MyST build outputs
 _build
+.venv/
