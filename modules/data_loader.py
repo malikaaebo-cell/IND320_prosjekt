@@ -1,14 +1,15 @@
+# data_loader.py
+# Load and prepare the reservoir data (reservoirs.csv) for the Streamlit pages
 import streamlit as st
 import pandas as pd
 
-@st.cache_data # Cacher resultatet slik at CSV-filen kun leses én gang, ikke ved hver Streamlit-rerun
+# Cache the result so the CSV is only read once and not on every Streamlit rerun
+@st.cache_data
 def load_data(path="project_data/reservoirs.csv"):
-    """Leser magasindata fra CSV, omdøper kolonner til engelsk,
-    og sorterer kronologisk. Cachet for at det skal gå raskere."""
+    # Read the CSV file
     df = pd.read_csv(path)
 
-# Samme oversettelse av kolonnenavn som i notebooken (se rename-cellen der)
-
+    # Rename the Norwegian headers to English (same names as in the notebook)
     df = df.rename(columns={
         'dato_Id': 'date',
         'omrType': 'area_type',
@@ -23,7 +24,12 @@ def load_data(path="project_data/reservoirs.csv"):
         'endring_fyllingsgrad': 'fill_ratio_change'
     })
 
-# Konverter til faktisk datotype (ikke tekst) og sorter kronologisk
+    # Convert the date column from text to datetime
     df['date'] = pd.to_datetime(df['date'])
-    df = df.sort_values('date').reset_index(drop=True)
+
+    # Combine area type and number into one label, e.g., 'EL 1', 'VASS 2' and 'NO 0'
+    df['area'] = df['area_type'] + ' ' + df['area_number'].astype(str)
+
+    # Sort by area and date so that each area forms one continuous time series
+    df = df.sort_values(['area_type', 'area_number', 'date']).reset_index(drop=True)
     return df

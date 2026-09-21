@@ -1,38 +1,51 @@
+# Page with a table of the imported data, one row per column, with a small line chart of the first month
 import streamlit as st
 import pandas as pd
 from modules.data_loader import load_data
 
-st.title("Tabell")
-st.write("Dette er en tabell med LineChartColumn() for hver kolonne i datasettet.")
+# Set the page title and use the full width of the browser
+st.set_page_config(
+    page_title="Table",
+    layout="wide",
+)
 
-# Last inn dataene via den delte, cachede funksjonen (samme som brukes på plot-siden)
+st.title("Table")
+st.write("One row per column in the data set. The line chart shows the first month of the series.")
+
+# Load the data using the shared, cached function (also used on the plot page)
 df = load_data()
 
-# Finn datasettets første måned, siden tabellen kun skal vise trend for denne perioden
-first_date = df['date'].min()
-first_month_mask = (df['date'].dt.year == first_date.year) & (df['date'].dt.month == first_date.month)
-first_month_df = df[first_month_mask]
+# Drop-down menu for choosing which area to show, since the data contains nine areas
+area = st.selectbox("Select area", sorted(df['area'].unique()))
+df_area = df[df['area'] == area]
 
-# Velg kun numeriske kolonner, siden tekstkolonner ikke kan vises som trendlinje
-numeric_cols = df.select_dtypes(include='number').columns.tolist()
+# Find the first month in the data set and keep only the rows from that month
+first_date = df_area['date'].min()
+first_month_mask = (df_area['date'].dt.year == first_date.year) & (df_area['date'].dt.month == first_date.month)
+first_month_df = df_area[first_month_mask]
 
-# Bygg tabellen: én rad per numerisk kolonne, med en liste av verdier fra første måned
-# (listen brukes av LineChartColumn under til å tegne en minigraf per rad)
+# Use the original columns of the CSV file, i.e., leave out the 'area' label added by the loader
+columns = [col for col in df.columns if col != 'area']
+
+# Build the table with one row per column. Each row holds the list of values from the first month.
+# Text and date columns cannot be drawn as a line, so they get None (an empty cell).
 table_data = pd.DataFrame({
-    "Kolonne": numeric_cols,
-    "Trend (første måned)": [first_month_df[col].tolist() for col in numeric_cols]
+    "Column": columns,
+    "First month": [
+        first_month_df[col].tolist() if pd.api.types.is_numeric_dtype(df[col]) else None
+        for col in columns
+    ]
 })
 
-# Vis tabellen, med "Trend"-kolonnen endret igjen som en linjegraf i stedet for rå tall
-# LineChartColumn er en Streamlit-widget
+# Show the table. LineChartColumn is a column configuration that draws a small line chart
+# from the list of values in each cell. Each row is scaled to its own minimum and maximum.
 st.dataframe(
     table_data,
     column_config={
-        "Trend (første måned)": st.column_config.LineChartColumn(
-            "Trend (første måned)",
+        "First month": st.column_config.LineChartColumn(
+            "First month (weekly values)",
             width="medium"
         )
     },
-    hide_index=True,
-    use_container_width=True
+    hide_index=True
 )
