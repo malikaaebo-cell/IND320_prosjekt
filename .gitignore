@@ -15,4 +15,11 @@ D2Dbook/_build
 
 # MyST build outputs
 _build
+
+# Ignore virtual environments
 .venv/
+.venv_gammel/
+
+# Ignore Streamlit secrets
+.streamlit/secrets.toml
+
