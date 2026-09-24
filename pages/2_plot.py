@@ -43,22 +43,21 @@ filtered = df_area[(df_area['year_month'] >= start) & (df_area['year_month'] <= 
 # Create the figure
 fig, ax = plt.subplots(figsize=(10, 5))
 
+# Show markers only for short periods, since they clutter the plot over many years
+marker = 'o' if len(filtered) <= 60 else None
+
 if selected_column == "All columns":
-    # Scale every column to 0-1 using the full series of the area (not only the selected months),
-    # so that columns with different units and scales can share one axis and the scaling stays fixed
     col_min = df_area[numeric_cols].min()
     col_range = df_area[numeric_cols].max() - col_min
-    # Columns that never change have range 0 (0/0 gives NaN), so they are set to 0
     normalised = ((filtered[numeric_cols] - col_min) / col_range).fillna(0)
     for col in numeric_cols:
-        ax.plot(filtered['date'], normalised[col], marker='o', label=col, alpha=0.7)
-    # Place the legend outside the plot so that it does not cover the lines
+        ax.plot(filtered['date'], normalised[col], marker=marker, label=col, alpha=0.7, linewidth=1)
     ax.legend(fontsize='small', loc='center left', bbox_to_anchor=(1, 0.5))
     ax.set_ylabel("Normalised value (0-1)")
     ax.set_title(f"All columns, normalised ({area})")
 else:
     # Plot the selected column directly, no scaling is needed with only one scale
-    ax.plot(filtered['date'], filtered[selected_column], marker='o')
+    ax.plot(filtered['date'], filtered[selected_column], marker=marker)
     ax.set_ylabel(selected_column)
     ax.set_title(f"{selected_column} ({area})")
 
