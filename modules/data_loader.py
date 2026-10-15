@@ -1,15 +1,24 @@
 # data_loader.py
-# Load and prepare the reservoir data (reservoirs.csv) for the Streamlit pages
+# Load and prepare the Magasinstatistikk data for the Streamlit pages.
+# Update (part 2): data now comes directly from the NVE Magasinstatistikk API
+# instead of the CSV file used in part 1.
 import streamlit as st
 import pandas as pd
+import requests
 
-# Cache the result so the CSV is only read once and not on every Streamlit rerun
+API_URL = "https://biapi.nve.no/magasinstatistikk/api/Magasinstatistikk/HentOffentligData"
+
+# Cache the result so the API is only called once and not on every Streamlit rerun.
+# Note: the API does not support filtering by date in the request itself (confirmed via
+# its Swagger specification), so we always fetch the full data set here. Any "download
+# interval" selection in the app (see the plot page) filters this already-downloaded data.
 @st.cache_data
-def load_data(path="project_data/reservoirs.csv"):
-    # Read the CSV file
-    df = pd.read_csv(path)
+def load_data():
+    response = requests.get(API_URL)
+    response.raise_for_status()
+    df = pd.DataFrame(response.json())
 
-    # Rename the Norwegian headers to English (same names as in the notebook)
+    # Rename the Norwegian headers to English (same names as in the notebook and the old CSV)
     df = df.rename(columns={
         'dato_Id': 'date',
         'omrType': 'area_type',
