@@ -87,14 +87,20 @@ with right:
     df_months = df_year[df_year['timestamp'].dt.month.isin(selected_month_numbers)]
 
     fig_line, ax_line = plt.subplots(figsize=(8, 5))
+    has_lines = False
     for (fra, til), gruppe in df_months.groupby(['from_area', 'to_area']):
         ax_line.plot(gruppe['timestamp'], gruppe['quantity_mw'], label=f'{fra} -> {til}', linewidth=1)
+        has_lines = True
 
     ax_line.set_xlabel("Tidspunkt")
     ax_line.set_ylabel("Mengde (MW)")
     ax_line.set_title(f"Kraftflyt NO2-DK1, {selected_year}")
-    ax_line.legend()
-    st.pyplot(fig_line)
+
+    if has_lines:
+        ax_line.legend()
+        st.pyplot(fig_line)
+    else:
+        st.info("Velg minst én måned for å vise linjeplottet.")
     plt.close(fig_line)
 
 with st.expander("About the data source"):
