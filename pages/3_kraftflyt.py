@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import pymongo
 import certifi
+import matplotlib.dates as mdates
 
 st.set_page_config(
     page_title="Kraftflyt",
@@ -66,15 +67,26 @@ with left:
     inn_til_norge = sum_per_retning.get(('DK1', 'NO2'), 0)
 
     fig_pie, ax_pie = plt.subplots(figsize=(5, 5))
-    ax_pie.pie(
+    wedges, _, _ = ax_pie.pie(
         [ut_av_norge, inn_til_norge],
-        labels=['Ut av Norge (NO2 -> DK1)', 'Inn til Norge (DK1 -> NO2)'],
         autopct='%1.1f%%',
-        startangle=90
+        startangle=90,
+    )
+    # Labels in a legend below the pie instead of next to the slices, so their position
+    # does not depend on the slice sizes
+    ax_pie.legend(
+        wedges,
+        ['Ut av Norge (NO2 -> DK1)', 'Inn til Norge (DK1 -> NO2)'],
+        loc='upper center',
+        bbox_to_anchor=(0.5, 0.02),
+        ncol=1,
+        frameon=False,
     )
     ax_pie.set_title(f"Kraftflyt NO2-DK1, totalt for {selected_year}")
     ax_pie.axis('equal')
-    st.pyplot(fig_pie)
+    # bbox_inches=None keeps the full 5x5 figure instead of Streamlit's default 'tight'
+    # cropping, so the pie has the same size for every year
+    st.pyplot(fig_pie, bbox_inches=None)
     plt.close(fig_pie)
 
 with right:
@@ -95,6 +107,12 @@ with right:
     ax_line.set_xlabel("Tidspunkt")
     ax_line.set_ylabel("Mengde (MW)")
     ax_line.set_title(f"Kraftflyt NO2-DK1, {selected_year}")
+    # Short, non-overlapping date labels: the locator picks sensible tick positions and
+    # the concise formatter only shows the parts of the date that change (e.g. 'Jan', '08')
+    locator = mdates.AutoDateLocator()
+    ax_line.xaxis.set_major_locator(locator)
+    ax_line.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    ax_line.grid(alpha=0.3)
 
     if has_lines:
         ax_line.legend()
