@@ -91,7 +91,7 @@ with left:
     # so the pie keeps the same size for every year, then show the image
     buf = io.BytesIO()
     fig_pie.savefig(buf, format="png", dpi=200)
-    st.image(buf)
+    st.image(buf, width=450)
     plt.close(fig_pie)
 
 with right:
