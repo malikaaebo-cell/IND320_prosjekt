@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pymongo
 import certifi
 import matplotlib.dates as mdates
+import io
 
 st.set_page_config(
     page_title="Kraftflyt",
@@ -86,7 +87,11 @@ with left:
     ax_pie.axis('equal')
     # bbox_inches=None keeps the full 5x5 figure instead of Streamlit's default 'tight'
     # cropping, so the pie has the same size for every year
-    st.pyplot(fig_pie, bbox_inches=None)
+    # Save the figure ourselves without 'tight' cropping (st.pyplot always crops tightly),
+    # so the pie keeps the same size for every year, then show the image
+    buf = io.BytesIO()
+    fig_pie.savefig(buf, format="png", dpi=200)
+    st.image(buf)
     plt.close(fig_pie)
 
 with right:
