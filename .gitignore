@@ -23,5 +23,10 @@ _build
 # Ignore Streamlit secrets
 .streamlit/secrets.toml
 
+# Ignore VS Code settings
 .vscode/
 notebooks/test_api.ipynb
+
+# Ignore downloaded weather data, except the NO3 2024 file used in the notebook
+project_data/weather_*.csv
+!project_data/weather_EL3_2024-01-01_2024-12-31.csv
