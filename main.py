@@ -7,16 +7,18 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("IND320 - Project work, part 2")
+st.title("IND320 - Project work, part 3")
 st.write(
-    "A dashboard for Norwegian reservoir statistics and cross-border power flow data. "
-    "Reservoir statistics are read directly from the NVE API, and cross-border power "
-    "flow data is read from MongoDB."
+    "A dashboard for Norwegian reservoir statistics, weather data and cross-border power "
+    "flow data. Reservoir statistics are read directly from the NVE API, weather data from "
+    "the open-meteo API, and cross-border power flow data from MongoDB. The area selector "
+    "in the sidebar is shared by the reservoir and weather pages."
 )
 
 st.divider()
 
-col1, col2, col3 = st.columns(3)
+# Overview of the pages, grouped as in the sidebar: reservoir data, weather data, power flow
+col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
     with st.container(border=True):
@@ -35,6 +37,22 @@ with col2:
         )
 
 with col3:
+    with st.container(border=True):
+        st.subheader("🔍 Magasinanalyse")
+        st.write(
+            "STL decomposition and spectrogram of the reservoir "
+            "degree of filling for the selected area."
+        )
+
+with col4:
+    with st.container(border=True):
+        st.subheader("🌦️ Væranalyse")
+        st.write(
+            "Outliers in precipitation (SPC) and anomalies in temperature "
+            "(LOF) for the selected area and year."
+        )
+
+with col5:
     with st.container(border=True):
         st.subheader("🔌 Kraftflyt")
         st.write(

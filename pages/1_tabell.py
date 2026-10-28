@@ -5,6 +5,7 @@
 import streamlit as st
 import pandas as pd
 from modules.data_loader import load_data
+from modules.area_selector import select_area
 
 # Set the page title and use the full width of the browser
 st.set_page_config(
@@ -22,10 +23,10 @@ st.write(
 # Load the data using the shared, cached function (also used on the plot page)
 df = load_data()
 
-# Radio buttons for choosing area type (EL, NO or VASS), per the part 2 requirements:
-# "such that plots and LineChartColumn() show the corresponding graphics for each
-# of the associated area numbers"
-area_type = st.radio("Select area type", sorted(df['area_type'].unique()), horizontal=True)
+# Area type (EL, NO or VASS) from the shared selector in the sidebar (part 3). The table
+# shows all area numbers of the chosen type, as required in part 2; the area number in the
+# sidebar is used by the analysis pages.
+area_type, _ = select_area(df)
 df_type = df[df['area_type'] == area_type]
 
 # Month label for each row, e.g. '1995-01'. The 'YYYY-MM' format sorts correctly as text,

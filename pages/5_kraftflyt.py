@@ -85,8 +85,6 @@ with left:
     )
     ax_pie.set_title(f"Kraftflyt NO2-DK1, totalt for {selected_year}")
     ax_pie.axis('equal')
-    # bbox_inches=None keeps the full 5x5 figure instead of Streamlit's default 'tight'
-    # cropping, so the pie has the same size for every year
     # Save the figure ourselves without 'tight' cropping (st.pyplot always crops tightly),
     # so the pie keeps the same size for every year, then show the image
     buf = io.BytesIO()

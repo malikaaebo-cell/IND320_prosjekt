@@ -3,6 +3,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 from modules.data_loader import load_data
+from modules.area_selector import select_area
 
 # Set the page title and use the full width of the browser
 st.set_page_config(
@@ -16,8 +17,9 @@ st.write("Plot of one column, with a separate line for each area number within t
 # Load the data using the shared, cached function (also used on the table page)
 df = load_data()
 
-# Radio buttons for choosing area type (EL, NO or VASS), per the part 2 requirements
-area_type = st.radio("Select area type", sorted(df['area_type'].unique()), horizontal=True)
+# Area type (EL, NO or VASS) from the shared selector in the sidebar (part 3). The plot
+# shows all area numbers of the chosen type, as required in part 2.
+area_type, _ = select_area(df)
 df_type = df[df['area_type'] == area_type].copy()
 
 # Only these columns are real measurements; iso_year, iso_week and area_number are

@@ -5,3 +5,6 @@ numpy
 requests
 pymongo
 certifi
+scipy
+scikit-learn
+statsmodels
