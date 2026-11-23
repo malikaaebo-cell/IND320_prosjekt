@@ -1,10 +1,11 @@
 pandas
-matplotlib
-streamlit
 numpy
+streamlit
 requests
 pymongo
 certifi
 scipy
 scikit-learn
 statsmodels
+plotly
+river

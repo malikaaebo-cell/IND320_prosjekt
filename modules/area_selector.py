@@ -2,6 +2,9 @@
 # Shared area selector in the sidebar, used by the reservoir and weather pages (part 3).
 # The choice is stored in st.session_state, so the same area stays selected when the
 # user moves between pages. The weather data that is downloaded depends on this choice.
+# Update (part 4): the area can also be chosen by clicking on the map on the front page,
+# which writes to the same session state keys. The week chosen on the map is stored as
+# 'map_date' and used as default time on the other pages.
 import streamlit as st
 
 
@@ -17,6 +20,7 @@ def select_area(df):
         st.session_state['area_number'] = 3
 
     st.sidebar.header("Area")
+    st.sidebar.caption("Also selected by clicking on the map on the front page.")
 
     # Area type: EL, NO or VASS, with the saved choice as the selected option
     area_types = sorted(df['area_type'].unique())
@@ -27,14 +31,19 @@ def select_area(df):
     )
 
     # Area number: only the numbers that exist for the chosen area type
-    numbers = sorted(df.loc[df['area_type'] == area_type, 'area_number'].unique())
+    numbers = sorted(int(n) for n in df.loc[df['area_type'] == area_type, 'area_number'].unique())
     saved_number = st.session_state['area_number']
     area_number = st.sidebar.selectbox(
         "Area number", numbers,
         index=numbers.index(saved_number) if saved_number in numbers else 0,
     )
 
-    # Save the choice so the other pages start with the same area
+    # Save the choice so the other pages (and the map) start with the same area
     st.session_state['area_type'] = area_type
     st.session_state['area_number'] = area_number
     return area_type, area_number
+
+
+def selected_date(df):
+    """The week chosen on the map (default: the latest week in Magasinstatistikk)."""
+    return st.session_state.get('map_date', df['date'].max())

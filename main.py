@@ -1,69 +1,45 @@
+# main.py
+# Entry point of the Streamlit app. Run with:  streamlit run main.py
+#
+# Update (part 4): the pages are grouped in the menu with st.navigation, following the sketch
+# in the part 4 notebook:
+#   Home                     - map of the areas, where the area and week are selected
+#   Data overview            - the data from the four sources, with little processing
+#   Exploratory & anomalies  - analyses of the reservoir and weather data
+#   Predictive               - forecast of the reservoir filling
+# Each group has its own colour (see modules/theme.py). Selections that are shared between the
+# pages (area, week) are stored in st.session_state; the others are made locally on each page.
 import streamlit as st
 
-# Set the page title and use the full width of the browser
 st.set_page_config(
-    page_title="IND320 Project",
+    page_title="IND320 – Reservoirs, weather and power",
     page_icon="⚡",
     layout="wide",
 )
 
-st.title("IND320 - Project work, part 3")
-st.write(
-    "A dashboard for Norwegian reservoir statistics, weather data and cross-border power "
-    "flow data. Reservoir statistics are read directly from the NVE API, weather data from "
-    "the open-meteo API, and cross-border power flow data from MongoDB. The area selector "
-    "in the sidebar is shared by the reservoir and weather pages."
-)
+pages = {
+    "Home": [
+        st.Page("pages/home_map.py", title="Map and area selection", icon=":material/map:", default=True),
+    ],
+    "Data overview": [
+        st.Page("pages/reservoir_data.py", title="Reservoir data", icon=":material/table_chart:"),
+        st.Page("pages/power_flow.py", title="Power flow NO2–DK1", icon=":material/bolt:"),
+        st.Page("pages/exchange_rates.py", title="Exchange rates", icon=":material/currency_exchange:"),
+    ],
+    "Exploratory & anomalies": [
+        st.Page("pages/reservoir_analysis.py", title="Reservoir analysis", icon=":material/water:"),
+        st.Page("pages/weather_analysis.py", title="Weather analysis", icon=":material/thermostat:"),
+        st.Page("pages/correlation.py", title="Weather vs. filling", icon=":material/query_stats:"),
+    ],
+    "Predictive": [
+        st.Page("pages/forecast.py", title="Forecast of filling", icon=":material/trending_up:"),
+    ],
+}
 
-st.divider()
+# The menu shows one header per group
+navigation = st.navigation(pages)
 
-# Overview of the pages, grouped as in the sidebar: reservoir data, weather data, power flow
-col1, col2, col3, col4, col5 = st.columns(5)
+st.sidebar.caption("IND320 project work · Malika Äbo · "
+                   "[GitHub](https://github.com/malikaaebo-cell/IND320_prosjekt)")
 
-with col1:
-    with st.container(border=True):
-        st.subheader("📊 Table")
-        st.write(
-            "Reservoir fill ratio, capacity and more, one row per area, "
-            "for a chosen area type (EL, NO or VASS)."
-        )
-
-with col2:
-    with st.container(border=True):
-        st.subheader("📈 Plot")
-        st.write(
-            "Reservoir data plotted over a chosen period, with one line "
-            "per area number within the selected area type."
-        )
-
-with col3:
-    with st.container(border=True):
-        st.subheader("🔍 Magasinanalyse")
-        st.write(
-            "STL decomposition and spectrogram of the reservoir "
-            "degree of filling for the selected area."
-        )
-
-with col4:
-    with st.container(border=True):
-        st.subheader("🌦️ Væranalyse")
-        st.write(
-            "Outliers in precipitation (SPC) and anomalies in temperature "
-            "(LOF) for the selected area and year."
-        )
-
-with col5:
-    with st.container(border=True):
-        st.subheader("🔌 Kraftflyt")
-        st.write(
-            "Cross-border power flow between Norway (NO2) and Denmark (DK1): "
-            "a pie chart per year and a line plot for chosen months."
-        )
-
-st.divider()
-
-st.write(" <- Use the menu in the sidebar to open a page.")
-st.write("[GitHub repository](https://github.com/malikaaebo-cell/IND320_prosjekt)")
-
-# Show a hint in the sidebar, below the automatic page navigation
-st.sidebar.success("Select a page above")
+navigation.run()

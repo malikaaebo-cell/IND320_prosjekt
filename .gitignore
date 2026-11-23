@@ -30,3 +30,6 @@ notebooks/test_api.ipynb
 # Ignore downloaded weather data, except the NO3 2024 file used in the notebook
 project_data/weather_*.csv
 !project_data/weather_EL3_2024-01-01_2024-12-31.csv
+
+# Part 4: the daily weather per area (2010-) is used by the app, so it is kept in the repository
+!project_data/weather_daily_*.csv
