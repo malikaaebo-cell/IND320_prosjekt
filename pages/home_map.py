@@ -10,6 +10,7 @@ import streamlit as st
 
 from modules.theme import page_header, show, HIGHLIGHT
 from modules.data_loader import load_data_or_stop
+from modules.area_selector import keep
 from modules.geo import load_geojson, GEOJSON_FILE
 from modules.weather import weather_for_period, DAILY_VARS, DAILY_LABELS, WeatherError
 
@@ -40,18 +41,29 @@ area_type = col1.radio("Areas", list(type_labels), format_func=type_labels.get,
 colour_by = col2.radio("Colour by", ["Degree of filling", "Weather property"], horizontal=True)
 weather_var = None
 if colour_by == "Weather property":
+    keep('weather_var', '_map_weather_var', DAILY_VARS[0])
     weather_var = col2.selectbox("Weather property", DAILY_VARS, format_func=DAILY_LABELS.get,
-                                 index=DAILY_VARS.index(st.session_state.get('weather_var', DAILY_VARS[0])))
+                                 key='_map_weather_var')
     st.session_state['weather_var'] = weather_var
 
 # Time: the weeks in Magasinstatistikk (the date is the Sunday ending the ISO week)
+keep('map_date', '_map_date', dates[-1])
+if st.session_state['_map_date'] not in dates:
+    st.session_state['_map_date'] = dates[-1]
 date = col3.select_slider(
-    "Week", options=dates, value=st.session_state['map_date'],
+    "Week", options=dates, key='_map_date',
     format_func=lambda d: f"{pd.Timestamp(d):%d %b %Y} (week {pd.Timestamp(d).isocalendar().week})",
     help="Also used as the end of the training data on the forecast page.",
 )
 st.session_state['map_date'] = date
 date = pd.Timestamp(date)
+
+# Fixed places for messages and the title above the map. Streamlit identifies elements by
+# their position on the page, so a message or spinner that only appears sometimes would move
+# the map one place down; Streamlit would then treat it as a new chart and draw it from scratch
+# (the map disappeared for half a second). With fixed containers the map keeps its position.
+messages = st.container()
+title = st.empty()
 
 # ---- Values used to colour the areas
 geo = load_geojson(area_type)
@@ -68,14 +80,15 @@ else:
     values = pd.Series(index=areas, dtype=float)
     if end >= start:
         try:
-            values = weather_for_period(area_type, f"{start:%Y-%m-%d}", f"{end:%Y-%m-%d}")[weather_var].reindex(areas)
+            with messages, st.spinner("Getting weather data for the map ..."):
+                values = weather_for_period(area_type, f"{start:%Y-%m-%d}", f"{end:%Y-%m-%d}")[weather_var].reindex(areas)
         except WeatherError as error:
-            st.warning(f"No weather data for the map: {error}")
+            messages.warning(f"No weather data for the map: {error}")
     label = DAILY_LABELS[weather_var]
     colorscale = "RdBu_r" if 'temperature' in weather_var else "YlGnBu"
     period_text = f"{start:%d %b} – {end:%d %b %Y}"
     if values.isna().all():
-        st.info("ERA5 weather data is not published yet for this week (it lags about five days). "
+        messages.info("ERA5 weather data is not published yet for this week (it lags about five days). "
                 "Choose an earlier week to colour by weather.")
 
 selected = f"{st.session_state['area_type']} {st.session_state['area_number']}"
@@ -93,11 +106,15 @@ if selected in areas:
         colorscale=[[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0)']], showscale=False,
         marker_line_width=4, marker_line_color=HIGHLIGHT, hoverinfo='skip',
     ))
+# uirevision keeps the map (zoom and position) between reruns, so Plotly only updates the colours.
+# The title is shown above the map in a fixed place instead, so the figure layout stays the same.
 fig.update_layout(
-    map=dict(style='carto-positron', center=dict(lat=65.0, lon=15.0), zoom=3.5),
-    height=640, margin=dict(l=0, r=0, t=40, b=0),
-    title=f"{label}, {period_text}",
+    map=dict(style='carto-positron', center=dict(lat=65.0, lon=15.0), zoom=3.5,
+             uirevision='map'),
+    uirevision='map',
+    height=640, margin=dict(l=0, r=0, t=10, b=0),
 )
+title.markdown(f"**{label}, {period_text}**")
 
 # A click (point selection) reruns the page; the key depends on the area type so that the
 # selection is reset when another type of area is shown

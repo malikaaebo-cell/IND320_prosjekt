@@ -8,35 +8,38 @@
 import streamlit as st
 
 
+def keep(state_key, widget_key, default):
+    """
+    Give a widget (with key widget_key) its start value from a value that is kept across pages
+    (state_key). Streamlit deletes a widget's own key when the user leaves the page, so the
+    shared value is stored under a separate key. The widget gets no index/value argument, which
+    would make Streamlit treat it as a new widget (and reset it) every time the value changes.
+    """
+    st.session_state.setdefault(state_key, default)
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = st.session_state[state_key]
+
+
 def select_area(df):
     """
     Show radio buttons for area type and a dropdown for area number in the sidebar.
     The options come from the Magasinstatistikk data (df).
     Returns the selected area type (e.g. 'EL') and area number (e.g. 3).
     """
-    # Default selection the first time the app is opened: NO3 (EL 3), as in the notebook
-    if 'area_type' not in st.session_state:
-        st.session_state['area_type'] = 'EL'
-        st.session_state['area_number'] = 3
-
     st.sidebar.header("Area")
     st.sidebar.caption("Also selected by clicking on the map on the front page.")
 
-    # Area type: EL, NO or VASS, with the saved choice as the selected option
+    # Area type: EL, NO or VASS. Default the first time: NO3 (EL 3), as in the notebook
     area_types = sorted(df['area_type'].unique())
-    area_type = st.sidebar.radio(
-        "Area type", area_types,
-        index=area_types.index(st.session_state['area_type']),
-        horizontal=True,
-    )
+    keep('area_type', '_area_type', 'EL')
+    area_type = st.sidebar.radio("Area type", area_types, horizontal=True, key='_area_type')
 
     # Area number: only the numbers that exist for the chosen area type
     numbers = sorted(int(n) for n in df.loc[df['area_type'] == area_type, 'area_number'].unique())
-    saved_number = st.session_state['area_number']
-    area_number = st.sidebar.selectbox(
-        "Area number", numbers,
-        index=numbers.index(saved_number) if saved_number in numbers else 0,
-    )
+    keep('area_number', '_area_number', 3)
+    if st.session_state['_area_number'] not in numbers:      # e.g. after changing the area type
+        st.session_state['_area_number'] = numbers[0]
+    area_number = st.sidebar.selectbox("Area number", numbers, key='_area_number')
 
     # Save the choice so the other pages (and the map) start with the same area
     st.session_state['area_type'] = area_type

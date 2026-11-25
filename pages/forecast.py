@@ -10,7 +10,7 @@ import streamlit as st
 
 from modules.theme import page_header, show, MUTED, TEXT, GROUPS
 from modules.data_loader import load_data_or_stop
-from modules.area_selector import select_area
+from modules.area_selector import select_area, keep
 from modules.weather import DAILY_VARS, DAILY_LABELS, WeatherError
 from modules.weekly_data import weekly_data
 from modules.forecast import forecast_filling, DEFAULTS
@@ -40,8 +40,11 @@ end_default = max(d for d in dates if d <= map_date) if map_date >= dates[0] els
 
 st.subheader("Training data and horizon")
 col1, col2, col3 = st.columns([2, 1, 1])
+keep('map_date', '_train_end', end_default)
+if st.session_state['_train_end'] not in dates:          # e.g. a week chosen on the map
+    st.session_state['_train_end'] = end_default
 train_end = col1.select_slider(
-    "Last week of training data", options=dates, value=end_default,
+    "Last week of training data", options=dates, key='_train_end',
     format_func=lambda d: f"{d:%d %b %Y}",
     help="Synced with the week on the map. Choose a week in the past to compare the forecast "
          "with what actually happened.")
@@ -101,8 +104,12 @@ st.subheader(f"Forecast for {area}")
 c1, c2, c3 = st.columns(3)
 c1.metric("Training data", f"{train.index[0]:%b %Y} – {train.index[-1]:%b %Y}", f"{len(train)} weeks",
           delta_color="off")
-c2.metric("Mean absolute error", f"{mae:.1f} pp" if mae is not None else "–",
-          "compared with the measured filling" if mae is not None else "future period", delta_color="off")
+c2.metric("Mean absolute error", f"{mae:.1f} pp" if mae is not None else "Not available",
+          help="The mean difference between the forecast and the measured filling, in percentage "
+               "points. It can only be computed when the forecast period is in the past: choose an "
+               "earlier 'Last week of training data' to compare the forecast with what happened.")
+if mae is None:
+    c2.caption("The forecast is for future weeks, so there are no measured values to compare with yet.")
 c3.metric("Run time", f"{runtime:.1f} s")
 
 

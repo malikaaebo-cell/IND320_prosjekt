@@ -83,13 +83,9 @@ def to_iso_weeks(daily, sum_cols=()):
     return daily.groupby(keys).agg(agg)
 
 
-def weekly_data(area, with_weather=True, with_currency=False):
-    """
-    Weekly data set for an area, with the NVE date (Sunday ending the ISO week) as index:
-    'fill' and 'fill_change' (degree of filling and its weekly change, in %), plus the daily
-    weather variables and/or 'EUR' and 'USD' aggregated to the same weeks.
-    Shows a progress bar while weather data is downloaded for the first time.
-    """
+@st.cache_data(show_spinner=False)
+def _assemble(area, with_weather, with_currency):
+    """Join the reservoir data with the weather and/or exchange rates (cached)."""
     df = load_data_or_stop()
     fill = df[(df['area'] == area) & (df['date'].dt.year >= START_YEAR)]
     data = fill.set_index(['iso_year', 'iso_week'])[['date', 'fill_ratio', 'fill_ratio_change']].copy()
@@ -97,16 +93,26 @@ def weekly_data(area, with_weather=True, with_currency=False):
     data['fill_change'] = 100 * data.pop('fill_ratio_change')
 
     if with_weather:
-        bar = None if weather_file(area).exists() else st.progress(0.0, text="Preparing weather download ...")
-        weather = download_daily_weather(area, _progress=bar)
-        if bar is not None:
-            bar.empty()
-        data = data.join(to_iso_weeks(weather, SUM_VARS))
+        data = data.join(to_iso_weeks(download_daily_weather(area), SUM_VARS))
     if with_currency:
         fx = exchange_rates_or_none(f'{START_YEAR}-01-01', pd.Timestamp.today().strftime('%Y-%m-%d'))
         if fx is not None:
             data = data.join(to_iso_weeks(fx))
 
     # Short gaps in the inputs (e.g. the latest week before ERA5 is published) are filled forward
-    data = data.reset_index().set_index('date').sort_index().ffill()
-    return data
+    return data.reset_index().set_index('date').sort_index().ffill()
+
+
+def weekly_data(area, with_weather=True, with_currency=False):
+    """
+    Weekly data set for an area, with the NVE date (Sunday ending the ISO week) as index:
+    'fill' and 'fill_change' (degree of filling and its weekly change, in %), plus the daily
+    weather variables and/or 'EUR' and 'USD' aggregated to the same weeks.
+    Shows a progress bar while weather data is downloaded for the first time; the joined data
+    set is cached, so it is only built once per area.
+    """
+    if with_weather and not weather_file(area).exists():
+        bar = st.progress(0.0, text="Preparing weather download ...")
+        download_daily_weather(area, _progress=bar)
+        bar.empty()
+    return _assemble(area, with_weather, with_currency)

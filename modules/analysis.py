@@ -7,9 +7,12 @@
 # See notebooks/projectwork_part3.ipynb for the explanations and tests.
 # Update (part 4): the functions return interactive Plotly figures instead of matplotlib,
 # and SPC/LOF work for any weather property (the label is given as an argument).
+# The functions are cached (st.cache_data), so the same analysis with the same settings is only
+# computed once, instead of on every rerun of the page (bonus: waiting time).
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 from plotly.subplots import make_subplots
 from scipy.fft import dct, idct
 from scipy.signal import stft
@@ -20,6 +23,7 @@ from statsmodels.tsa.seasonal import STL
 from modules.theme import PRIMARY, HIGHLIGHT, MUTED
 
 
+@st.cache_data(show_spinner=False)
 def spc_outliers(series, cutoff=25, n_std=3, label=None):
     """
     Find outliers in a time series with Statistical Process Control (SPC) on the
@@ -75,6 +79,7 @@ def spc_outliers(series, cutoff=25, n_std=3, label=None):
     return fig, summary, outliers
 
 
+@st.cache_data(show_spinner=False)
 def lof_anomalies(series, contamination=0.01, n_neighbors=20, time_step=0.01, label=None):
     """
     Find anomalies in a time series with the Local Outlier Factor (LOF) method.
@@ -119,6 +124,7 @@ def lof_anomalies(series, contamination=0.01, n_neighbors=20, time_step=0.01, la
     return fig, summary, anomalies
 
 
+@st.cache_data(show_spinner=False)
 def stl_decomposition(series, period=52, seasonal=13, trend=105, robust=False):
     """
     Decompose a time series into trend, seasonal and residual components with STL.
@@ -145,6 +151,7 @@ def stl_decomposition(series, period=52, seasonal=13, trend=105, robust=False):
     return fig
 
 
+@st.cache_data(show_spinner=False)
 def spectrogram(series, window_length=104, overlap=78, samples_per_year=52):
     """
     Spectrogram of a time series using the short-time Fourier transform.
@@ -164,6 +171,7 @@ def spectrogram(series, window_length=104, overlap=78, samples_per_year=52):
     start = series.index[0].year + series.index[0].dayofyear / 365
     keep = f <= 6
     fig = go.Figure(go.Heatmap(x=start + t, y=f[keep], z=np.abs(Zxx[keep]), colorscale='Viridis',
+                               zsmooth='best',   # smooth shading, like shading='gouraud' in the part 3 notebook
                                colorbar=dict(title='Amplitude'),
                                hovertemplate='Year %{x:.1f}<br>%{y:.2f} cycles/year<br>Amplitude %{z:.3f}<extra></extra>'))
     fig.update_layout(title=f'Spectrogram of {series.name} (window {window_length}, overlap {overlap})',

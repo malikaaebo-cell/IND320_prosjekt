@@ -53,7 +53,7 @@ class WeatherError(RuntimeError):
     """Raised with a readable message when open-meteo cannot deliver the data."""
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_locations():
     """Read the 1000 random locations per region, made in the notebook from the NVE shapefiles."""
     return pd.read_csv(DATA_DIR / 'locations.csv')
@@ -123,14 +123,40 @@ def get_weather(area, year, n_cells=10):
     return weather, f"{len(cells)} ERA5 grid cells sampled from the 1000 locations"
 
 
-@st.cache_data(show_spinner="Downloading weather data for the map ...")
-def weather_for_period(area_type, start, end, n_cells=3):
+@st.cache_data(show_spinner=False)
+def _read_daily_file(file):
+    """Read a saved daily weather file (made by the notebook or scripts/download_weather.py)."""
+    return pd.read_csv(file, index_col='time', parse_dates=True)
+
+
+def _aggregate(daily):
+    """Aggregate daily values over a period: sums for precipitation etc., means for the others."""
+    return {v: (daily[v].sum(min_count=1) if v in SUM_VARS else daily[v].mean()) for v in DAILY_VARS}
+
+
+def _weather_from_files(area_type, start, end):
     """
-    Daily ERA5 data for all areas of one type ('EL', 'VASS' or 'NO') between start and end
-    ('YYYY-MM-DD'), aggregated over the period: sums for precipitation, rain, snowfall and
-    radiation, means for the others. Each area is represented by n_cells grid cells.
-    Returns a DataFrame with one row per area.
+    The period's weather per area from the saved daily files (2010 until about a week ago),
+    or None if a file is missing or does not cover the whole period. Reading the files is
+    instant, so the map does not have to call open-meteo every time the week is changed.
     """
+    start, end = pd.Timestamp(start), pd.Timestamp(end)
+    areas = sorted(a for a in load_locations()['area'].unique() if a.split()[0] == area_type)
+    rows = {}
+    for area in areas:
+        file = DATA_DIR / f"weather_daily_{area.replace(' ', '')}_2010_3cells.csv"
+        if not file.exists():
+            return None
+        period = _read_daily_file(file).loc[start:end]
+        if len(period) < (end - start).days + 1:
+            return None
+        rows[area] = _aggregate(period)
+    return pd.DataFrame.from_dict(rows, orient='index')
+
+
+@st.cache_data(show_spinner=False)
+def _weather_from_api(area_type, start, end, n_cells=3):
+    """The same aggregation, downloaded from open-meteo (used for weeks before 2010)."""
     # The grid cells of every area of this type, in one request
     areas = sorted(a for a in load_locations()['area'].unique() if a.split()[0] == area_type)
     cells = pd.concat([grid_cells(a, n_cells).assign(area=a) for a in areas], ignore_index=True)
@@ -144,8 +170,17 @@ def weather_for_period(area_type, start, end, n_cells=3):
     rows = []
     for (_, cell), loc in zip(cells.iterrows(), data):
         daily = pd.DataFrame(loc['daily']).drop(columns='time').astype(float)
-        agg = {v: (daily[v].sum(min_count=1) if v in SUM_VARS else daily[v].mean()) for v in DAILY_VARS}
-        rows.append({'area': cell['area'], 'n': cell['n'], **agg})
+        rows.append({'area': cell['area'], 'n': cell['n'], **_aggregate(daily)})
     per_cell = pd.DataFrame(rows)
     weighted = per_cell[DAILY_VARS].multiply(per_cell['n'], axis=0)
     return weighted.groupby(per_cell['area']).sum(min_count=1).div(per_cell.groupby('area')['n'].sum(), axis=0)
+
+
+def weather_for_period(area_type, start, end):
+    """
+    Daily ERA5 data for all areas of one type ('EL', 'VASS' or 'NO') between start and end
+    ('YYYY-MM-DD'), aggregated over the period, with one row per area. Read from the saved
+    files when they cover the period, otherwise downloaded from open-meteo (cached).
+    """
+    local = _weather_from_files(area_type, start, end)
+    return local if local is not None else _weather_from_api(area_type, start, end)

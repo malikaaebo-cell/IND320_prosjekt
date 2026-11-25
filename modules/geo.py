@@ -11,7 +11,7 @@ from modules.weather import DATA_DIR
 GEOJSON_FILE = DATA_DIR / 'areas.geojson'
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_geojson(area_type):
     """GeoJSON FeatureCollection with only the areas of one type ('EL', 'VASS' or 'NO')."""
     with open(GEOJSON_FILE, encoding='utf-8') as f:
